@@ -1,0 +1,28 @@
+Parameters:
+  APIName:
+    Type: "String"
+    MinLength: 1
+    Default: "swingman"
+  LambdaName:
+    Type: "String"
+    MinLength: 1
+    Default: "openPing-ArenaConfiguration-Authorize"
+  MethodName:
+    Type: "String"
+    MinLength: 1
+    Default: "GET"
+
+APIID:
+  Fn::ImportValue:
+    !Sub ${APIName}-APIId
+
+
+Resources:
+  # Lambda Permission
+  HandleActionPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties: 
+      Action: lambda:InvokeFunction
+      FunctionName: !Sub ${LambdaName}
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:1a1a1a1a1/*/${MethodName}/arena-configuration/authorize

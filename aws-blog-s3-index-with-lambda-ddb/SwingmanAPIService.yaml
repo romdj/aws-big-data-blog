@@ -1,0 +1,144 @@
+Parameters:
+  APIName:
+    Type: "String"
+    MinLength: 1
+    Default: "swingman"
+  ServiceName:
+    Type: "String"
+    MinLength: 1
+    Default: "ArenaConfiguration-Authorize"
+  ServiceVersion:
+    Type: "String"
+    MinLength: 1
+    Default: "1.0.0"
+  MethodName:
+    Type: "String"
+    MinLength: 1
+    Default: "GET"
+  LambdaName:
+    Type: "String"
+    MinLength: 1
+    Default: "openPing-ArenaConfiguration-Authorize"
+  LambdaFileS3Bucket:
+    Type: "String"
+    MinLength: 1
+    Default: "romdj-lambdas"
+  LambdaFileS3Key:
+    Type: "String"
+    MinLength: 1
+    Default: "sampleLambda.js.zip"
+  LambdaDefaultRole:
+    Type: "String"
+    MinLength: 1
+    Default: "apigateway"
+Metadata:
+  Type: "AWS::CloudFormation::Interface"
+  ParameterGroups:
+    - 
+      Label:
+        default: "API Gateway service configuration"
+      Parameters:
+        - ServiceName
+        - ServiceVersion
+        - MethodName
+  ParameterLabels:
+    ServiceName:
+      default: "Which machine name does this service have?"
+    ServiceVersion:
+      default: "Which version does this service have?"
+    MethodName:
+      default: "Which method should this service respond to?"
+Resources: 
+  # Resources
+  ArenaConfigurationAuthorize:
+    Type: "AWS::ApiGateway::Resource"
+    Properties: 
+      RestApiId: 
+        Fn::ImportValue:
+          !Sub "${APIName}-APIId"
+      ParentId: 
+        Fn::ImportValue:
+          !Sub "${APIName}-ArenaConfiguration"
+      PathPart: "authorize"
+  # Lambda Function
+  ArenaConfigurationAuthorizeLambda:
+    Type: "AWS::Lambda::Function"
+    Properties: 
+      FunctionName: !Sub ${LambdaName}
+      Handler: "sampleLambda.handler"
+      Role: !Sub arn:aws:iam::${AWS::AccountId}:role/${LambdaDefaultRole}
+      Code: 
+        S3Bucket: !Sub ${LambdaFileS3Bucket}
+        S3Key: !Sub ${LambdaFileS3Key}
+      Runtime: "nodejs4.3"
+      Timeout: "25"
+      Environment: 
+        Variables:
+          # Secrets
+          Public: "A Public AWS Key for Lambda Function"
+          Private: "A Private AWS Key for Lambda Function"
+  # Methods
+  ArenaConfigurationAuthorizeHandleAction:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      HttpMethod:
+        Ref: "MethodName"
+      RestApiId: 
+        Fn::ImportValue:
+          !Sub "${APIName}-APIId"
+      ResourceId: 
+        Ref: "ArenaConfigurationAuthorize"
+      AuthorizationType: "NONE"
+      MethodResponses: []
+      Integration: 
+        Type: "AWS_PROXY"
+        IntegrationHttpMethod: "POST"
+        Uri:
+          !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${LambdaName}/invocations"
+        PassthroughBehavior: "NEVER"
+        IntegrationResponses: []
+    # CORS
+  ArenaConfigurationAuthorizeHandleOptions:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      HttpMethod: "OPTIONS"
+      RestApiId:
+        Fn::ImportValue:
+          !Sub "${APIName}-APIId"
+      ResourceId:
+        Ref: "ArenaConfigurationAuthorize"
+      AuthorizationType: "NONE"
+      MethodResponses: []
+      Integration:
+        Type: "AWS_PROXY"
+        IntegrationHttpMethod: "POST"
+        Uri:
+          !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${LambdaName}/invocations"
+        PassthroughBehavior: "NEVER"
+        IntegrationResponses: []
+  # Deployments
+  ArenaConfigurationAuthorizeDevelopmentDeployment: 
+    Type: "AWS::ApiGateway::Deployment"
+    DependsOn: 
+      - "ArenaConfigurationAuthorizeHandleAction"
+      - "ArenaConfigurationAuthorizeHandleOptions"
+    Properties: 
+      RestApiId: 
+        Fn::ImportValue:
+          !Sub "${APIName}-APIId"
+      StageName:
+        Fn::ImportValue:
+          !Sub "${APIName}-DevelopmentStage"
+  ArenaConfigurationAuthorizeProductionDeployment: 
+    Type: "AWS::ApiGateway::Deployment"
+    DependsOn: 
+      - "ArenaConfigurationAuthorizeHandleAction"
+      - "ArenaConfigurationAuthorizeHandleOptions"
+    Properties: 
+      RestApiId: 
+        Fn::ImportValue:
+          !Sub "${APIName}-APIId"
+      StageName:
+        Fn::ImportValue:
+          !Sub "${APIName}-ProductionStage"
+

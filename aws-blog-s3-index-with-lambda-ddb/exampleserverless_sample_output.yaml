@@ -1,0 +1,45 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Simple CRUD web service. State is stored in a DynamoDB table.
+Resources:
+  GetFunction:
+    Properties:
+      CodeUri: s3://romdj-monitor-0/e3d3c8051453fc7febf43ce6f62972c3
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Ref: Table
+      Events:
+        GetResource:
+          Properties:
+            Method: get
+            Path: /resource/{resourceId}
+          Type: Api
+      Handler: index.get
+      Policies: AmazonDynamoDBReadOnlyAccess
+      Runtime: nodejs4.3
+    Type: AWS::Serverless::Function
+  PutFunction:
+    Properties:
+      CodeUri: s3://romdj-monitor-0/e3d3c8051453fc7febf43ce6f62972c3
+      Environment:
+        Variables:
+          TABLE_NAME:
+            Ref: Table
+      Events:
+        DeleteResource:
+          Properties:
+            Method: delete
+            Path: /resource/{resourceId}
+          Type: Api
+        PutResource:
+          Properties:
+            Method: put
+            Path: /resource/{resourceId}
+          Type: Api
+      Handler: index.set
+      Policies: AmazonDynamoDBFullAccess
+      Runtime: nodejs4.3
+    Type: AWS::Serverless::Function
+  Table:
+    Type: AWS::Serverless::SimpleTable
+Transform: AWS::Serverless-2016-10-31

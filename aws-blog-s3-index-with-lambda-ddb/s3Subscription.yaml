@@ -1,0 +1,9 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  MySubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: lambda
+      Protocol: http
+      TopicArn: 
+        !Ref romdj-testbucket4

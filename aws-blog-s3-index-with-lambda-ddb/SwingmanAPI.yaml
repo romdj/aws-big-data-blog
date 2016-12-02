@@ -1,0 +1,146 @@
+Parameters:
+  APIName:
+    Type: "String"
+    MinLength: 1
+    Default: "swingman"
+  APIVersion:
+    Type: "String"
+    MinLength: 1
+    Default: "1.0.0"
+Metadata:
+  Type: "AWS::CloudFormation::Interface"
+  ParameterGroups:
+      Label:
+        default: "API configuration panel"
+      Parameters:
+        - APIName
+        - APIVersion
+  ParameterLabels:
+    APIName:
+      default: "Which name does this API have?"
+    APIVersion:
+      default: "Which version does this API have?"
+# Default API resources
+Resources:
+  Swingman:
+    Type: "AWS::ApiGateway::RestApi"
+    Properties:
+      Name:
+        Ref: "APIName"
+      Description: "Keemotion utility services"
+  SwingmanIndexMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      ApiKeyRequired: false
+      AuthorizationType: "NONE"
+      HttpMethod: "GET"
+      MethodResponses: []
+      ResourceId:
+        Fn::GetAtt:
+          - "Swingman"
+          - "RootResourceId"
+      RestApiId: 
+        Ref: "Swingman"
+      Integration: 
+        Type: "MOCK"
+        IntegrationHttpMethod: "GET"
+        IntegrationResponses:
+          -
+            StatusCode: "200"
+            SelectionPattern: "^$"
+            ResponseParameters: {}
+            ResponseTemplates:
+              application/json: "{}"
+              application/xml: "<xml></xml>"
+              text/plain: ""
+              text/html: ""
+  # The default deployment
+  SwingmanDeployment: 
+    Type: "AWS::ApiGateway::Deployment"
+    DependsOn: 
+      - "SwingmanIndexMethod"
+    Properties: 
+      RestApiId: 
+        Ref: "Swingman"
+  # The stages
+  SwingmanDevelopmentStage:
+    Type: "AWS::ApiGateway::Stage"
+    Properties:
+      DeploymentId:
+        Ref: SwingmanDeployment
+      Description: "This stage is to be used for development purposes only"
+      RestApiId:
+        Ref: "Swingman"
+      StageName: "development"
+      Variables:
+        APIName:
+          Ref: "APIName"
+        APIVersion:
+          Ref: "APIVersion"
+  SwingmanProductionStage:
+    Type: "AWS::ApiGateway::Stage"
+    Properties:
+      DeploymentId:
+        Ref: SwingmanDeployment
+      Description: "This stage is to be used for production purposes only"
+      RestApiId:
+        Ref: "Swingman"
+      StageName: "production"
+      Variables:
+        APIName:
+          Ref: "APIName"
+        APIVersion:
+          Ref: "APIVersion"
+  # Common Resources
+  ArenaConfiguration:
+    Type: "AWS::ApiGateway::Resource"
+    Properties: 
+      RestApiId: 
+        Ref: "Swingman"
+      ParentId:
+        Fn::GetAtt:
+          - "Swingman"
+          - "RootResourceId"
+      PathPart: "arena-configuration"          
+# Export to the world
+Outputs:
+  APIId:
+    Description: "The API's own identifier"
+    Value:
+      Ref: "Swingman"
+    Export:
+      Name:
+        Fn::Sub: "${AWS::StackName}-APIId"
+  RootResourceId:
+    Description: "The API's root resource identifier"
+    Value:
+      Fn::GetAtt:
+        - "Swingman"
+        - "RootResourceId"
+    Export:
+      Name:
+        Fn::Sub: "${AWS::StackName}-RootResourceId"
+  # Export development stage
+  DevelopmentStage:
+    Description: "The development stage"
+    Value:
+      Ref: "SwingmanDevelopmentStage"
+    Export:
+      Name:
+        Fn::Sub: "${AWS::StackName}-DevelopmentStage"
+  # Export development stage
+  ProductionStage:
+    Description: "The production stage"
+    Value:
+      Ref: "SwingmanProductionStage"
+    Export:
+      Name:
+        Fn::Sub: "${AWS::StackName}-ProductionStage"
+  # Common resources
+  ArenaConfiguration:
+    Description: "The arena configuration resource"
+    Value:
+      Ref: "ArenaConfiguration"
+    Export:
+      Name:
+        Fn::Sub: "${AWS::StackName}-ArenaConfiguration"
